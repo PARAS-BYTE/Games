@@ -1,0 +1,201 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;700;800;900&display=swap');
+
+:root {
+  --bg-main: #FDFBF7;
+  --bg-card: #FFFFFF;
+  --text-dark: #2C3E50;
+  --text-muted: #7F8C8D;
+  
+  /* Kid-friendly cheerful pastel candy palette */
+  --color-mint: #38B07D;
+  --color-mint-light: #E8F8F0;
+  --color-mint-dark: #248259;
+
+  --color-sun: #F5A623;
+  --color-sun-light: #FEF7E6;
+  --color-sun-dark: #C97E06;
+
+  --color-coral: #FF6565;
+  --color-coral-light: #FFF0F0;
+  --color-coral-dark: #D44242;
+
+  --color-sky: #3CA2FF;
+  --color-sky-light: #EBF5FF;
+  --color-sky-dark: #1E74C4;
+
+  --color-lavender: #9B59B6;
+  --color-lavender-light: #F7EEFA;
+  --color-lavender-dark: #74348E;
+
+  --color-teal: #1ABC9C;
+  --color-teal-light: #E3F8F4;
+
+  --font-display: 'Fredoka', 'Nunito', -apple-system, sans-serif;
+  --font-body: 'Nunito', -apple-system, sans-serif;
+
+  --shadow-soft: 0 10px 25px -5px rgba(44, 62, 80, 0.07), 0 8px 10px -6px rgba(44, 62, 80, 0.04);
+  --shadow-card: 0 14px 28px rgba(0, 0, 0, 0.05), 0 10px 10px rgba(0, 0, 0, 0.02);
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-main);
+  background-image: radial-gradient(#E8E2D5 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  color: var(--text-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+}
+
+/* 3D Tactile Bouncy Buttons (Kid friendly, super satisfying to press!) */
+.btn-squishy {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  border-radius: 9999px;
+  padding: 12px 28px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translateY(0);
+}
+
+.btn-squishy:active {
+  transform: translateY(4px);
+}
+
+.btn-mint {
+  background: var(--color-mint);
+  color: #ffffff;
+  box-shadow: 0 5px 0 var(--color-mint-dark);
+}
+.btn-mint:active {
+  box-shadow: 0 1px 0 var(--color-mint-dark);
+}
+
+.btn-sun {
+  background: var(--color-sun);
+  color: #ffffff;
+  box-shadow: 0 5px 0 var(--color-sun-dark);
+}
+.btn-sun:active {
+  box-shadow: 0 1px 0 var(--color-sun-dark);
+}
+
+.btn-coral {
+  background: var(--color-coral);
+  color: #ffffff;
+  box-shadow: 0 5px 0 var(--color-coral-dark);
+}
+.btn-coral:active {
+  box-shadow: 0 1px 0 var(--color-coral-dark);
+}
+
+.btn-sky {
+  background: var(--color-sky);
+  color: #ffffff;
+  box-shadow: 0 5px 0 var(--color-sky-dark);
+}
+.btn-sky:active {
+  box-shadow: 0 1px 0 var(--color-sky-dark);
+}
+
+.btn-lavender {
+  background: var(--color-lavender);
+  color: #ffffff;
+  box-shadow: 0 5px 0 var(--color-lavender-dark);
+}
+.btn-lavender:active {
+  box-shadow: 0 1px 0 var(--color-lavender-dark);
+}
+
+.btn-outline {
+  background: #FFFFFF;
+  color: var(--text-dark);
+  border: 2px solid #E2D9CC;
+  box-shadow: 0 4px 0 #D4C9B8;
+}
+.btn-outline:active {
+  box-shadow: 0 1px 0 #D4C9B8;
+  transform: translateY(3px);
+}
+
+/* Cozy Kid-Game Cards */
+.toy-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 24px rgba(60, 40, 20, 0.06), 0 3px 0 #EDE7DD;
+  border: 3px solid #F1ECE3;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toy-card-interactive:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(60, 40, 20, 0.09), 0 5px 0 #E2D7C5;
+}
+
+/* Subtle gentle animation keyframes */
+@keyframes softPulseGlow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(78, 186, 136, 0)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(78, 186, 136, 0.45)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(78, 186, 136, 0)); }
+}
+
+@keyframes gentleShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.anim-pulse-correct {
+  animation: softPulseGlow 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.anim-gentle-shake {
+  animation: gentleShake 0.3s ease-in-out;
+}
+
+.anim-floating {
+  animation: floatSlow 3s ease-in-out infinite;
+}
+
+/* Custom Scrollbar for playful feel */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #F4EFE6;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8CEBE;
+  border-radius: 9999px;
+  border: 2px solid #F4EFE6;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B8AC98;
+}
