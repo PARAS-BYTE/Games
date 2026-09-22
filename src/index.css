@@ -199,3 +199,10 @@ h1, h2, h3, h4, .font-display {
 ::-webkit-scrollbar-thumb:hover {
   background: #B8AC98;
 }
+
+@media (max-width: 900px) {
+  .chrono-split-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
