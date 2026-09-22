@@ -6,6 +6,7 @@ import { MemoryGrid } from './games/MemoryGrid/MemoryGrid';
 import { PathWeaver } from './games/PathWeaver/PathWeaver';
 import { MoodMatch } from './games/MoodMatch/MoodMatch';
 import { ChronoPulse } from './games/ChronoPulse/ChronoPulse';
+import { AviatorCrash } from './games/AviatorCrash/AviatorCrash';
 
 export const App: React.FC = () => {
   const [activeGame, setActiveGame] = useState<string>('map');
@@ -18,6 +19,7 @@ export const App: React.FC = () => {
     'path-weaver': { highLevel: 1, stars: 0, bestScore: 0 },
     'mood-match': { highLevel: 1, stars: 0, bestScore: 0 },
     'chrono-pulse': { highLevel: 1, stars: 0, bestScore: 0 },
+    'aviator-crash': { highLevel: 1, stars: 0, bestScore: 0 },
   });
 
   const handleBackToMap = () => {
@@ -71,6 +73,12 @@ export const App: React.FC = () => {
 
         {activeGame === 'chrono-pulse' && (
           <ChronoPulse
+            onBack={handleBackToMap}
+          />
+        )}
+
+        {activeGame === 'aviator-crash' && (
+          <AviatorCrash
             onBack={handleBackToMap}
           />
         )}

@@ -61,4 +61,14 @@ export const GAMES_CATALOG: GameInfo[] = [
     description: 'Test your inner perception of time! A random target is set with running milliseconds. Watch calibration, close your eyes as it goes blind, and tap STOP at the exact moment!',
     iconName: 'Sparkles',
   },
+  {
+    id: 'aviator-crash',
+    title: 'Aero Velocity: Flight Stopwatch',
+    tagline: 'Manual Start & Stop Flight Multiplier: Lock in accelerating yields before the stall',
+    category: 'Analytical',
+    color: '#38B07D',
+    accentColor: '#E8F8F0',
+    description: 'The supersonic flight stopwatch! Start the flight, watch the multiplier accelerate exponentially (+0.1 to +12 to +110!), and hit STOP at the exact moment you choose before the stall. Complete with Top 5 Hall of Fame!',
+    iconName: 'Zap',
+  },
 ];

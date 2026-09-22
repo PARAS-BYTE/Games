@@ -190,6 +190,135 @@ class SoundEngine {
       this.ambientGain = null;
     }, 1100);
   }
+
+  // --- AVIATOR PROCEDURAL AUDIO FX ---
+  private jetOsc1: OscillatorNode | null = null;
+  private jetOsc2: OscillatorNode | null = null;
+  private jetGain: GainNode | null = null;
+
+  public startJetEngine() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+    this.stopJetEngine();
+
+    const now = this.ctx.currentTime;
+    this.jetGain = this.ctx.createGain();
+    this.jetGain.gain.setValueAtTime(0.001, now);
+    this.jetGain.gain.linearRampToValueAtTime(0.09, now + 0.3);
+    this.jetGain.connect(this.ctx.destination);
+
+    // Deep twin turbine hum
+    this.jetOsc1 = this.ctx.createOscillator();
+    this.jetOsc1.type = 'sawtooth';
+    this.jetOsc1.frequency.setValueAtTime(110, now);
+
+    this.jetOsc2 = this.ctx.createOscillator();
+    this.jetOsc2.type = 'triangle';
+    this.jetOsc2.frequency.setValueAtTime(112, now);
+
+    this.jetOsc1.connect(this.jetGain);
+    this.jetOsc2.connect(this.jetGain);
+
+    this.jetOsc1.start(now);
+    this.jetOsc2.start(now);
+  }
+
+  public updateJetEngine(multiplier: number) {
+    if (!this.ctx || !this.jetOsc1 || !this.jetOsc2 || !this.jetGain || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    // Pitch gently ascends as multiplier climbs
+    const targetFreq = Math.min(650, 110 + Math.log2(Math.max(1, multiplier)) * 90);
+    this.jetOsc1.frequency.setTargetAtTime(targetFreq, now, 0.05);
+    this.jetOsc2.frequency.setTargetAtTime(targetFreq * 1.02, now, 0.05);
+  }
+
+  public stopJetEngine() {
+    if (!this.ctx || !this.jetGain) return;
+    const now = this.ctx.currentTime;
+    this.jetGain.gain.linearRampToValueAtTime(0.0001, now + 0.15);
+    const osc1 = this.jetOsc1;
+    const osc2 = this.jetOsc2;
+    const gain = this.jetGain;
+    this.jetOsc1 = null;
+    this.jetOsc2 = null;
+    this.jetGain = null;
+
+    setTimeout(() => {
+      try {
+        osc1?.stop();
+        osc2?.stop();
+        gain?.disconnect();
+      } catch {
+        // ignore if already stopped
+      }
+    }, 200);
+  }
+
+  // Cashout Ka-Ching / Victory bell sound
+  public playCashoutDing() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const chords = [880, 1174.66, 1760]; // A5, D6, A6
+    chords.forEach((f, i) => {
+      setTimeout(() => {
+        this.playNote(f, 0.35, 'sine');
+      }, i * 65);
+    });
+  }
+
+  // Procedural Crash explosion / alarm rumble
+  public playCrashExplosion() {
+    this.stopJetEngine();
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // Low frequency rumble drop
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.5);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.6);
+
+    // Procedural noise burst for impact crunch
+    try {
+      const bufferSize = this.ctx.sampleRate * 0.4;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.2, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      noise.connect(noiseGain);
+      noiseGain.connect(this.ctx.destination);
+      noise.start(now);
+    } catch {
+      // Fallback already covered by oscillator
+    }
+  }
+
+  // Pre-flight radar countdown blip
+  public playCountdownBlip(highPitch: boolean = false) {
+    if (this.isMuted) return;
+    this.playNote(highPitch ? 880 : 520, 0.08, 'triangle');
+  }
 }
 
 export const sounds = new SoundEngine();
