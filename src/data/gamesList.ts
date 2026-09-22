@@ -54,11 +54,11 @@ export const GAMES_CATALOG: GameInfo[] = [
   {
     id: 'chrono-pulse',
     title: 'Chrono Pulse: Blind Stop',
-    tagline: '10-Trial Internal Chronometer: Close eyes & stop running timer at exact milliseconds',
+    tagline: '10-Trial Internal Chronometer: Stop when you want to stop at exact milliseconds',
     category: 'Precision',
     color: '#8E44AD',
     accentColor: '#F5EEF8',
-    description: 'Test your inner perception of time! A random target is set with running milliseconds. Watch calibration, close your eyes as it goes blind, and tap STOP at the exact moment!',
+    description: 'Test your inner perception of time! A random target is set with running milliseconds. Watch calibration, then stop when you want to stop at the exact moment!',
     iconName: 'Sparkles',
   },
   {

@@ -537,8 +537,8 @@ export const ChronoPulse: React.FC<{
                   animate={{ opacity: 1, scale: 1 }}
                   style={{ textAlign: 'center' }}
                 >
-                  <div style={{ fontSize: '3.2rem', fontWeight: 900, color: '#E056FD', letterSpacing: '6px', textShadow: '0 0 24px rgba(224, 86, 253, 0.8)' }}>
-                    EYES CLOSED
+                  <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#E056FD', letterSpacing: '4px', textShadow: '0 0 24px rgba(224, 86, 253, 0.8)' }}>
+                    STOP WHEN YOU WANT TO STOP
                   </div>
                   <div style={{ color: '#FFFFFF', fontSize: '1.1rem', fontWeight: 800, marginTop: '10px' }}>
                     Go <strong>{playerName}</strong>! Stop at exactly {targetSeconds.toFixed(2)}s!

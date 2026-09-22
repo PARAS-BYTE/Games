@@ -46,7 +46,11 @@ const STORAGE_KEY = 'aero_accuracy_leaderboard_top5';
 const NAME_STORAGE_KEY = 'aero_velocity_last_student_name';
 
 export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  // Player name state
+  // Flight Run Count
+  const [flightNumber, setFlightNumber] = useState<number>(1);
+  const pendingNextPatternRef = useRef<PatternSequence | null>(null);
+
+  // Player name state (pre-filled if exists)
   const [playerName, setPlayerName] = useState<string>(() => {
     try {
       return localStorage.getItem(NAME_STORAGE_KEY) || '';
@@ -63,13 +67,8 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   });
 
-  const [isNameModalOpen, setIsNameModalOpen] = useState<boolean>(() => {
-    try {
-      return !(localStorage.getItem(NAME_STORAGE_KEY) || '').trim();
-    } catch {
-      return true;
-    }
-  });
+  // Always open Name Modal on initial entry and on every new flight run
+  const [isNameModalOpen, setIsNameModalOpen] = useState<boolean>(true);
   const [nameModalError, setNameModalError] = useState<string | null>(null);
   const modalInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -110,7 +109,7 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [patternSecondsLeft, setPatternSecondsLeft] = useState<number>(5.0);
 
   const [, setCurrentMultiplier] = useState<number>(1.0);
-  const [trialsSinceInstantStall, setTrialsSinceInstantStall] = useState<number>(0);
+  const trialsSinceInstantStallRef = useRef<number>(0);
 
   // Active Pattern Puzzle for THIS Flight (Past 4-5 flights)
   const [activePattern, setActivePattern] = useState<PatternSequence>({
@@ -121,6 +120,8 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     ruleExplanation: 'Past flights: 1.20 -> 2.40 -> 3.60 -> 4.80. Adds +1.20x each time, so next blast = 6.00x!',
     isInstantStall: false,
   });
+  const activePatternRef = useRef<PatternSequence>(activePattern);
+  activePatternRef.current = activePattern;
 
   // Results
   const [stoppedMultiplier, setStoppedMultiplier] = useState<number | null>(null);
@@ -182,12 +183,13 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     renderStudyCanvas(1.0, false);
   }, []);
 
-  // --- DYNAMIC PATTERN GENERATOR (Past 4-5 Flights + 1-in-5-to-6 Instant Stall) ---
+  // --- VAST DYNAMIC PATTERN GENERATOR (16+ Unique Mathematical Families) ---
   const generateNewPatternPuzzle = useCallback((): PatternSequence => {
-    const isStallRound = trialsSinceInstantStall >= 4 && (trialsSinceInstantStall >= 6 || Math.random() < 0.45);
+    // 1-in-5 to 6 early stall anomaly rule
+    const isStallRound = trialsSinceInstantStallRef.current >= 4 && (trialsSinceInstantStallRef.current >= 6 || Math.random() < 0.45);
 
     if (isStallRound) {
-      setTrialsSinceInstantStall(0);
+      trialsSinceInstantStallRef.current = 0;
       const pastPills = [3.4, 5.1, 7.8, 12.0];
       const stallPoint = Number((1.01 + Math.random() * 0.06).toFixed(2));
       return {
@@ -200,12 +202,14 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       };
     }
 
-    setTrialsSinceInstantStall((prev) => prev + 1);
+    trialsSinceInstantStallRef.current += 1;
 
     const patternArchetypes = [
+      // 1. Linear Arithmetic Progression (Positive Diff)
       () => {
-        const diff = Number((0.8 + Math.random() * 1.5).toFixed(2));
-        const base = Number((1.2 + Math.random() * 1.8).toFixed(2));
+        const stepChoices = [0.4, 0.6, 0.75, 0.9, 1.1, 1.25, 1.5, 1.8, 2.2, 2.5, 3.0];
+        const diff = stepChoices[Math.floor(Math.random() * stepChoices.length)];
+        const base = Number((1.2 + Math.random() * 1.6).toFixed(2));
         const count = 4;
         const history: number[] = [];
         for (let i = 0; i < count; i++) {
@@ -213,17 +217,41 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         }
         const target = Number((base + count * diff).toFixed(2));
         return {
-          name: `Linear Progression (+${diff.toFixed(2)}x)`,
+          name: `Linear Addition (+${diff.toFixed(2)}x)`,
           description: `Each flight blast increases steadily by +${diff.toFixed(2)}x`,
           historyPills: history,
           actualBlastTarget: target,
-          ruleExplanation: `Past flights: ${history.join(' -> ')}. Constant increase of +${diff.toFixed(2)}x yields target = ${target.toFixed(2)}x!`,
+          ruleExplanation: `Past flights: ${history.join(' -> ')}. Constant increase of +${diff.toFixed(2)}x yields next blast = ${target.toFixed(2)}x!`,
           isInstantStall: false,
         };
       },
+
+      // 2. Descending Arithmetic Progression (Negative Step)
       () => {
-        const ratio = Number((1.35 + Math.random() * 0.45).toFixed(2));
-        const base = Number((1.1 + Math.random() * 0.6).toFixed(2));
+        const stepChoices = [0.8, 1.0, 1.25, 1.5, 1.75];
+        const step = stepChoices[Math.floor(Math.random() * stepChoices.length)];
+        const target = Number((1.5 + Math.random() * 1.5).toFixed(2));
+        const history = [
+          Number((target + 4 * step).toFixed(2)),
+          Number((target + 3 * step).toFixed(2)),
+          Number((target + 2 * step).toFixed(2)),
+          Number((target + 1 * step).toFixed(2)),
+        ];
+        return {
+          name: `Descending Progression (-${step.toFixed(2)}x)`,
+          description: `Each flight blast decreases steadily by -${step.toFixed(2)}x`,
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: `Past flights: ${history.join(' -> ')}. Step decrease of -${step.toFixed(2)}x predicts next blast at ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 3. Geometric Progression (Exponential Scaling)
+      () => {
+        const ratioChoices = [1.25, 1.35, 1.4, 1.5, 1.6, 1.75, 2.0];
+        const ratio = ratioChoices[Math.floor(Math.random() * ratioChoices.length)];
+        const base = Number((1.1 + Math.random() * 0.5).toFixed(2));
         const count = 4;
         const history: number[] = [];
         let curr = base;
@@ -233,38 +261,230 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         }
         const target = Number(curr.toFixed(2));
         return {
-          name: `Exponential Scaling (x${ratio.toFixed(2)})`,
-          description: `Each blast multiplies by approximately x${ratio.toFixed(2)}`,
+          name: `Geometric Scaling (×${ratio.toFixed(2)})`,
+          description: `Each blast multiplies by approximately ×${ratio.toFixed(2)}`,
           historyPills: history,
           actualBlastTarget: target,
-          ruleExplanation: `Geometric sequence: past flights multiply by ${ratio.toFixed(2)} each time, arriving at ${target.toFixed(2)}x!`,
+          ruleExplanation: `Geometric sequence: flights multiply by ×${ratio.toFixed(2)} each time, arriving at ${target.toFixed(2)}x!`,
           isInstantStall: false,
         };
       },
+
+      // 4. Second-Order Arithmetic (Accelerating Step Differences: +k, +2k, +3k...)
       () => {
-        const lowVal = Number((1.8 + Math.random() * 1.2).toFixed(2));
-        const highVal = Number((5.5 + Math.random() * 3.0).toFixed(2));
+        const kChoices = [0.4, 0.5, 0.6, 0.8];
+        const k = kChoices[Math.floor(Math.random() * kChoices.length)];
+        const base = Number((1.2 + Math.random() * 0.6).toFixed(2));
+        const history = [
+          base,
+          Number((base + k).toFixed(2)),
+          Number((base + k + 2 * k).toFixed(2)),
+          Number((base + k + 2 * k + 3 * k).toFixed(2)),
+        ];
+        const target = Number((history[3] + 4 * k).toFixed(2));
+        return {
+          name: `Accelerating Steps (+${k}x, +${2 * k}x, +${3 * k}x...)`,
+          description: `The gap between each blast increases by +${k.toFixed(2)}x each flight`,
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: `Differences are +${k}, +${2 * k}, +${3 * k}. Next step increases by +${4 * k}x, yielding ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 5. Fibonacci Additive Sequence (Each equals sum of previous two)
+      () => {
+        const a = Number((1.0 + Math.random() * 0.5).toFixed(2));
+        const b = Number((1.5 + Math.random() * 0.6).toFixed(2));
+        const c = Number((a + b).toFixed(2));
+        const d = Number((b + c).toFixed(2));
+        const target = Number((c + d).toFixed(2));
+        const history = [a, b, c, d];
+        return {
+          name: 'Fibonacci Additive Chain',
+          description: 'Each blast is the exact sum of the previous two flights',
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: `Fibonacci principle: ${c} + ${d} = next blast of ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 6. Alternating Two-Value Cycle (Low <-> High)
+      () => {
+        const lowVal = Number((1.6 + Math.random() * 1.0).toFixed(2));
+        const highVal = Number((5.2 + Math.random() * 3.5).toFixed(2));
         const history = [lowVal, highVal, lowVal, highVal];
         const target = lowVal;
         return {
-          name: 'Alternating Oscillation Cycle',
+          name: 'Alternating Binary Cycle',
           description: `Blasts alternate between a low value (~${lowVal}x) and high value (~${highVal}x)`,
           historyPills: history,
           actualBlastTarget: target,
-          ruleExplanation: `Alternating pattern: ${lowVal} -> ${highVal} -> ${lowVal} -> ${highVal}. Cycle predicts next blast at ${target.toFixed(2)}x!`,
+          ruleExplanation: `Alternating cycle: ${lowVal} -> ${highVal} -> ${lowVal} -> ${highVal}. Next in cycle is ${target.toFixed(2)}x!`,
           isInstantStall: false,
         };
       },
+
+      // 7. Three-Phase Cyclic Orbit (A -> B -> C -> A -> B)
       () => {
-        const base = 1.5;
-        const history = [base, base + 1.0, base + 2.5, base + 4.5];
-        const target = Number((base + 7.0).toFixed(2));
+        const a = Number((2.0 + Math.random() * 0.8).toFixed(2));
+        const b = Number((4.5 + Math.random() * 1.2).toFixed(2));
+        const c = Number((8.0 + Math.random() * 2.0).toFixed(2));
+        const history = [a, b, c, a];
+        const target = b;
         return {
-          name: 'Accelerating Gap (+1.0x, +1.5x, +2.0x...)',
-          description: 'The difference between each flight increases by +0.50x',
+          name: 'Tri-Phase Orbit (A ➔ B ➔ C)',
+          description: `Pattern cycles across 3 distinct altitude levels: ${a}x, ${b}x, ${c}x`,
           historyPills: history,
           actualBlastTarget: target,
-          ruleExplanation: `Differences are +1.0, +1.5, +2.0. Next step increases by +2.5x, giving ${target.toFixed(2)}x!`,
+          ruleExplanation: `Cyclic loop: ${a} -> ${b} -> ${c} -> ${a}. The next cyclic step is ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 8. Square Numbers Progression (n² × scale)
+      () => {
+        const scaleChoices = [0.35, 0.45, 0.55];
+        const scale = scaleChoices[Math.floor(Math.random() * scaleChoices.length)];
+        const history = [
+          Number((1 * 1 * scale + 1.0).toFixed(2)),
+          Number((2 * 2 * scale + 1.0).toFixed(2)),
+          Number((3 * 3 * scale + 1.0).toFixed(2)),
+          Number((4 * 4 * scale + 1.0).toFixed(2)),
+        ];
+        const target = Number((5 * 5 * scale + 1.0).toFixed(2));
+        return {
+          name: 'Quadratic Square Curve (n² Growth)',
+          description: 'Blasts grow proportionally to the square of flight count (1², 2², 3², 4²...)',
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: `Quadratic expansion: 5² × ${scale} + 1.0 = ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 9. Triangular Numbers Offset (1, 3, 6, 10, 15...)
+      () => {
+        const scale = Number((0.5 + Math.random() * 0.3).toFixed(2));
+        const history = [
+          Number((1 * scale + 1.0).toFixed(2)),
+          Number((3 * scale + 1.0).toFixed(2)),
+          Number((6 * scale + 1.0).toFixed(2)),
+          Number((10 * scale + 1.0).toFixed(2)),
+        ];
+        const target = Number((15 * scale + 1.0).toFixed(2));
+        return {
+          name: 'Triangular Numbers Sequence',
+          description: 'Blast points follow the triangular series: 1, 3, 6, 10, 15...',
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: `Triangular numbers progression: 5th triangular number is 15, yielding ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 10. Alternating Dual Operations (+A then ×B)
+      () => {
+        const add = 1.5;
+        const mult = 1.4;
+        const p1 = 2.0;
+        const p2 = Number((p1 + add).toFixed(2)); // 3.5
+        const p3 = Number((p2 * mult).toFixed(2)); // 4.9
+        const p4 = Number((p3 + add).toFixed(2)); // 6.4
+        const target = Number((p4 * mult).toFixed(2)); // 8.96
+        return {
+          name: `Alternating Operations (+${add}x, ×${mult})`,
+          description: `Alternates between adding +${add}x and multiplying by ×${mult}`,
+          historyPills: [p1, p2, p3, p4],
+          actualBlastTarget: target,
+          ruleExplanation: `Dual operation sequence: next step multiplies ${p4}x by ×${mult} = ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 11. Harmonic Damping (Step Halves Each Time)
+      () => {
+        const history = [2.0, 6.0, 8.0, 9.0]; // +4.0, +2.0, +1.0
+        const target = 9.5; // +0.5
+        return {
+          name: 'Harmonic Step Damping (+4, +2, +1, +0.5...)',
+          description: 'Step size cuts strictly in half after each flight',
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: 'Step halves each time: +4, +2, +1. Next increment is +0.5x, giving 9.50x!',
+          isInstantStall: false,
+        };
+      },
+
+      // 12. Prime Number Increments (+2, +3, +5, +7...)
+      () => {
+        const base = 1.5;
+        const history = [
+          base,
+          Number((base + 2.0).toFixed(2)),
+          Number((base + 2.0 + 3.0).toFixed(2)),
+          Number((base + 2.0 + 3.0 + 5.0).toFixed(2)),
+        ];
+        const target = Number((history[3] + 7.0).toFixed(2));
+        return {
+          name: 'Prime Steps Sequence (+2, +3, +5, +7...)',
+          description: 'Increments follow the prime numbers: +2, +3, +5, +7, +11',
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: `Prime progression: added +2, +3, +5. Next prime step adds +7.0x, landing at ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 13. Staircase Plateau Steps (Pairwise Hold)
+      () => {
+        const val1 = Number((2.4 + Math.random() * 0.8).toFixed(2));
+        const val2 = Number((val1 + 2.5).toFixed(2));
+        const target = Number((val2 + 2.5).toFixed(2));
+        return {
+          name: 'Staircase Plateau Steps (Pairwise Hold)',
+          description: 'Values hold constant for 2 flights before advancing to the next level',
+          historyPills: [val1, val1, val2, val2],
+          actualBlastTarget: target,
+          ruleExplanation: `Staircase pattern: holds two flights at each tier. Step jumps from ${val2}x to ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 14. Affine Doubling with Offset (2x - 1)
+      () => {
+        const x1 = 1.5;
+        const x2 = Number((x1 * 1.8 - 0.5).toFixed(2));
+        const x3 = Number((x2 * 1.8 - 0.5).toFixed(2));
+        const x4 = Number((x3 * 1.8 - 0.5).toFixed(2));
+        const target = Number((x4 * 1.8 - 0.5).toFixed(2));
+        return {
+          name: 'Affine Recurrence (1.8x - 0.5)',
+          description: 'Each blast multiplies by 1.8 then subtracts 0.5',
+          historyPills: [x1, x2, x3, x4],
+          actualBlastTarget: target,
+          ruleExplanation: `Recurrence: (${x4} × 1.8) - 0.5 = ${target.toFixed(2)}x!`,
+          isInstantStall: false,
+        };
+      },
+
+      // 15. Cube Numbers Sub-Scaled
+      () => {
+        const scale = 0.12;
+        const history = [
+          Number((1 * 1 * 1 * scale + 1.0).toFixed(2)),
+          Number((2 * 2 * 2 * scale + 1.0).toFixed(2)),
+          Number((3 * 3 * 3 * scale + 1.0).toFixed(2)),
+          Number((4 * 4 * 4 * scale + 1.0).toFixed(2)),
+        ];
+        const target = Number((5 * 5 * 5 * scale + 1.0).toFixed(2));
+        return {
+          name: 'Cubic Power Sequence (n³ Curve)',
+          description: 'Blasts expand along cubic scale: 1³, 2³, 3³, 4³...',
+          historyPills: history,
+          actualBlastTarget: target,
+          ruleExplanation: `Cubic acceleration: 5³ × ${scale} + 1.0 = ${target.toFixed(2)}x!`,
           isInstantStall: false,
         };
       },
@@ -272,7 +492,7 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     const chosen = patternArchetypes[Math.floor(Math.random() * patternArchetypes.length)]();
     return chosen;
-  }, [trialsSinceInstantStall]);
+  }, []);
 
   // Multi-stage accelerating flight curve
   // 0-3s: +0.1 to +0.2x/s, 3-6s: +1.8x/s, 6-9s: +11-12x/s, >12s: +105-110x/s!
@@ -300,66 +520,6 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
 
     return Number(mult.toFixed(2));
-  };
-
-  // --- START 5-SECOND PATTERN MEMORY WINDOW ---
-  const startPatternCountdown = useCallback((targetPattern?: PatternSequence) => {
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    sounds.stopJetEngine();
-
-    const p = targetPattern || activePattern;
-    setPhase('deduction');
-    setPatternSecondsLeft(5.0);
-    setCurrentMultiplier(1.0);
-    currentMultiplierRef.current = 1.0;
-    setStoppedMultiplier(null);
-    setWasBlastedBeforeStop(false);
-    setRoundAccuracy(null);
-    setRoundPoints(0);
-    setPerformanceRating(null);
-    setLastRoundPlacement(null);
-    setScreenShake(false);
-
-    requestAnimationFrame(() => {
-      renderStudyCanvas(1.0, false);
-    });
-
-    const startTimestamp = Date.now();
-    let lastWholeSec = 5;
-
-    countdownIntervalRef.current = setInterval(() => {
-      const elapsed = (Date.now() - startTimestamp) / 1000;
-      const remaining = Math.max(0, 5.0 - elapsed);
-      setPatternSecondsLeft(Number(remaining.toFixed(1)));
-
-      const wholeSec = Math.ceil(remaining);
-      if (wholeSec <= 3 && wholeSec > 0 && wholeSec !== lastWholeSec) {
-        lastWholeSec = wholeSec;
-        sounds.playCountdownBlip(false);
-      }
-
-      if (remaining <= 0) {
-        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-        sounds.playCountdownBlip(true);
-        handleTakeoff(p);
-      }
-    }, 50);
-  }, [activePattern]);
-
-  // --- LAUNCH FLIGHT: PATTERN IS HIDDEN & PLANE FLIES OFF ---
-  const handleTakeoff = (p?: PatternSequence) => {
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    const flightPattern = p || activePattern;
-
-    sounds.playTap();
-    setPhase('running');
-    setCurrentMultiplier(1.0);
-    currentMultiplierRef.current = 1.0;
-    flightStartTimeRef.current = performance.now();
-    sounds.startJetEngine();
-
-    runFlightLoop(flightPattern.actualBlastTarget, flightPattern.isInstantStall);
   };
 
   // --- 60FPS HIGH-EFFICIENCY FLIGHT SIMULATION LOOP ---
@@ -394,13 +554,82 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     animFrameRef.current = requestAnimationFrame(loop);
   };
 
+  // --- LAUNCH FLIGHT: PATTERN IS HIDDEN & PLANE FLIES OFF ---
+  const handleTakeoff = (p?: PatternSequence) => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    const flightPattern = p || activePatternRef.current;
+
+    sounds.playTap();
+    setPhase('running');
+    setCurrentMultiplier(1.0);
+    currentMultiplierRef.current = 1.0;
+    flightStartTimeRef.current = performance.now();
+    sounds.startJetEngine();
+
+    runFlightLoop(flightPattern.actualBlastTarget, flightPattern.isInstantStall);
+  };
+
+  // --- START 5-SECOND PATTERN MEMORY WINDOW ---
+  const startPatternCountdown = (targetPattern?: PatternSequence) => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    sounds.stopJetEngine();
+
+    const p = targetPattern || activePatternRef.current;
+    setPhase('deduction');
+    setPatternSecondsLeft(5.0);
+    setCurrentMultiplier(1.0);
+    currentMultiplierRef.current = 1.0;
+    setStoppedMultiplier(null);
+    setWasBlastedBeforeStop(false);
+    setRoundAccuracy(null);
+    setRoundPoints(0);
+    setPerformanceRating(null);
+    setLastRoundPlacement(null);
+    setScreenShake(false);
+
+    requestAnimationFrame(() => {
+      renderStudyCanvas(1.0, false);
+    });
+
+    const startTimestamp = Date.now();
+    let lastWholeSec = 5;
+
+    countdownIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTimestamp) / 1000;
+      const remaining = Math.max(0, 5.0 - elapsed);
+      setPatternSecondsLeft(Number(remaining.toFixed(1)));
+
+      const wholeSec = Math.ceil(remaining);
+      if (wholeSec <= 3 && wholeSec > 0 && wholeSec !== lastWholeSec) {
+        lastWholeSec = wholeSec;
+        sounds.playCountdownBlip(false);
+      }
+
+      if (remaining <= 0) {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+        }
+        sounds.playCountdownBlip(true);
+        handleTakeoff(p);
+      }
+    }, 100);
+  };
+
   // --- MANUAL USER STOP: CALCULATES EXACT STOPPING ACCURACY ---
   const handleStopFlight = () => {
-    if (phase !== 'running') return;
+    if (phaseRef.current !== 'running') return;
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
 
     const stoppedAt = currentMultiplierRef.current;
-    const blastedAt = activePattern.actualBlastTarget;
+    const blastedAt = activePatternRef.current.actualBlastTarget;
 
     sounds.playCashoutDing();
     sounds.stopJetEngine();
@@ -439,7 +668,7 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       });
     }
 
-    saveToAccuracyLeaderboard(acc, stoppedAt, blastedAt, diff, pts, activePattern.name);
+    saveToAccuracyLeaderboard(acc, stoppedAt, blastedAt, diff, pts, activePatternRef.current.name);
   };
 
   // --- PLANE DIES BEFORE STOPPED ---
@@ -524,15 +753,20 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     });
   };
 
-  // --- NEXT FLIGHT CHALLENGE: GENERATE BRAND NEW RANDOM PATTERN ---
+  // --- NEXT FLIGHT CHALLENGE: PROMPTS NAME FOR EVERY RUN & GENERATES VAST NEW PATTERN ---
   const handleNextFlightChallenge = () => {
     sounds.playTap();
+    // Prepare a fresh vast pattern puzzle for this new run
     const nextP = generateNewPatternPuzzle();
-    setActivePattern(nextP);
-    startPatternCountdown(nextP);
+    pendingNextPatternRef.current = nextP;
+
+    // Take runner's name for every run (pre-filled with current name for quick confirmation)
+    setNameInputValue(playerName);
+    setNameModalError(null);
+    setIsNameModalOpen(true);
   };
 
-  // --- NAME SUBMISSION ---
+  // --- NAME CONFIRMATION (EXECUTED FOR EVERY RUN) ---
   const handleConfirmStudentName = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = nameInputValue.trim();
@@ -552,17 +786,62 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setIsNameModalOpen(false);
     sounds.playTap();
 
+    setFlightNumber((prev) => prev + 1);
+    const pToUse = pendingNextPatternRef.current || generateNewPatternPuzzle();
+    pendingNextPatternRef.current = null;
+    setActivePattern(pToUse);
+    activePatternRef.current = pToUse;
+
     // Directly present the 5-second pattern countdown upon entering name!
-    startPatternCountdown();
+    startPatternCountdown(pToUse);
   };
 
-  // Initial mount: if name exists, start pattern countdown
+  // Stable references for keyboard control (prevents stale closures)
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+
+  const handleStopFlightRef = useRef(handleStopFlight);
+  handleStopFlightRef.current = handleStopFlight;
+
+  const handleTakeoffRef = useRef(handleTakeoff);
+  handleTakeoffRef.current = handleTakeoff;
+
+  const handleNextFlightChallengeRef = useRef(handleNextFlightChallenge);
+  handleNextFlightChallengeRef.current = handleNextFlightChallenge;
+
+  // --- SPACEBAR KEYBOARD CONTROLS (START / STOP / NEXT FLIGHT) ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+
+        e.preventDefault();
+
+        if (phaseRef.current === 'running') {
+          handleStopFlightRef.current();
+        } else if (phaseRef.current === 'deduction') {
+          handleTakeoffRef.current();
+        } else if (phaseRef.current === 'revealed') {
+          handleNextFlightChallengeRef.current();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Initial mount: generate first pattern (waits for initial name prompt confirmation)
   useEffect(() => {
     const p = generateNewPatternPuzzle();
     setActivePattern(p);
-    if (playerName.trim()) {
-      startPatternCountdown(p);
-    }
+    activePatternRef.current = p;
+    pendingNextPatternRef.current = p;
   }, []);
 
   // Cleanup timers on unmount
@@ -901,7 +1180,7 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               </h1>
             </div>
             <p style={{ margin: 0, fontSize: '0.82rem', color: '#7F8C8D', fontWeight: 700 }}>
-              Analytical Aptitude &bull; 5s Pattern Memory &bull; Precision Ejection
+              Flight #{flightNumber} &bull; 5s Pattern Memory &bull; Precision Stopping
             </p>
           </div>
         </div>
@@ -928,10 +1207,10 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               fontWeight: 800,
               color: '#2C3E50',
             }}
-            title="Click to edit runner name"
+            title="Click to change runner name for this flight"
           >
             <User size={16} color="#38B07D" />
-            <span>{playerName || 'Set Name'}</span>
+            <span>{playerName || 'Enter Name'}</span>
           </button>
 
           <button
@@ -1356,6 +1635,9 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               >
                 <Play size={22} fill="#FFFFFF" />
                 <span>TAKE OFF NOW ({patternSecondsLeft.toFixed(1)}s)</span>
+                <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(255,255,255,0.25)', padding: '2px 8px', borderRadius: '6px', fontWeight: 900 }}>
+                  SPACE
+                </span>
               </motion.button>
             )}
 
@@ -1370,7 +1652,7 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   fontSize: '1.5rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
+                  gap: '14px',
                   backgroundColor: '#E74C3C',
                   color: '#FFFFFF',
                   boxShadow: '0 10px 30px rgba(231, 76, 60, 0.55)',
@@ -1382,6 +1664,9 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               >
                 <Square size={26} fill="#FFFFFF" />
                 <span>STOP NOW!</span>
+                <span style={{ fontSize: '0.85rem', backgroundColor: 'rgba(255,255,255,0.3)', padding: '3px 10px', borderRadius: '8px', fontWeight: 900 }}>
+                  SPACE
+                </span>
               </motion.button>
             )}
 
@@ -1397,14 +1682,17 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     fontSize: '1.1rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '10px',
                     backgroundColor: '#38B07D',
                     borderColor: '#248259',
                     color: '#FFFFFF',
                   }}
                 >
                   <RotateCcw size={20} />
-                  <span>Next Flight Challenge (5s Pattern)</span>
+                  <span>Next Flight Challenge</span>
+                  <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(255,255,255,0.25)', padding: '2px 8px', borderRadius: '6px', fontWeight: 900 }}>
+                    SPACE
+                  </span>
                 </motion.button>
 
                 <button
@@ -1511,7 +1799,7 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Zap size={16} color="#38B07D" />
-                <span>Current Runner: <strong>{playerName || 'None'}</strong></span>
+                <span>Current Runner: <strong>{playerName || 'Enter on Run'}</strong></span>
               </div>
               <div>
                 {playerTopRank > 0 ? (
@@ -1674,7 +1962,7 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* ================= NAME ENTRY MODAL (FIRST TIME / EDIT) ================= */}
+      {/* ================= NAME ENTRY MODAL (TAKEN FOR EVERY FLIGHT RUN) ================= */}
       <AnimatePresence>
         {isNameModalOpen && (
           <motion.div
@@ -1728,11 +2016,15 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <UserCheck size={32} />
               </div>
 
+              <div style={{ display: 'inline-block', backgroundColor: '#E8F8F0', color: '#1E6B47', padding: '3px 12px', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 900, marginBottom: '8px' }}>
+                FLIGHT RUN #{flightNumber}
+              </div>
+
               <h2 style={{ fontSize: '1.55rem', fontWeight: 900, color: '#2C3E50', margin: '0 0 6px 0' }}>
-                Welcome, Flight Analyst!
+                Enter Runner Name
               </h2>
               <p style={{ fontSize: '0.88rem', color: '#64748B', fontWeight: 600, margin: '0 0 20px 0', lineHeight: 1.4 }}>
-                Please enter your name. Once confirmed, a pattern of past flights will appear for <strong>5 seconds</strong> to memorize before takeoff!
+                Enter or confirm your name for this flight run. Once confirmed, a fresh mathematical pattern will be shown for <strong>5 seconds</strong> to memorize before takeoff!
               </p>
 
               <form onSubmit={handleConfirmStudentName}>
@@ -1835,26 +2127,33 @@ export const AviatorCrash: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <div style={{ fontWeight: 900, color: '#38B07D', fontSize: '1.1rem' }}>1.</div>
                   <div>
-                    <strong>5-Second Pattern Inspection:</strong> As each round begins, the blasts of the past 4-5 flights are shown in sequence (e.g. +1.50x each time, geometric scaling, or cycles).
+                    <strong>Name Taken for Every Run:</strong> Confirm your name before each flight so every run is logged to your personal accuracy record.
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{ fontWeight: 900, color: '#E67E22', fontSize: '1.1rem' }}>2.</div>
+                  <div style={{ fontWeight: 900, color: '#3498DB', fontSize: '1.1rem' }}>2.</div>
+                  <div>
+                    <strong>5-Second Pattern Inspection:</strong> As each round begins, the blasts of the past 4-5 flights appear in sequence (drawn from 16+ diverse mathematical pattern archetypes).
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ fontWeight: 900, color: '#E67E22', fontSize: '1.1rem' }}>3.</div>
                   <div>
                     <strong>Pattern Hides &amp; Flight Launches:</strong> After 5 seconds, the pattern is completely removed from view and the supersonic jet flies off!
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{ fontWeight: 900, color: '#E74C3C', fontSize: '1.1rem' }}>3.</div>
+                  <div style={{ fontWeight: 900, color: '#E74C3C', fontSize: '1.1rem' }}>4.</div>
                   <div>
                     <strong>Stop Before It Dies:</strong> The plane will die (blast) at the exact mathematical target deduced from the pattern. Click <strong>STOP NOW!</strong> right before it dies.
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{ fontWeight: 900, color: '#9B59B6', fontSize: '1.1rem' }}>4.</div>
+                  <div style={{ fontWeight: 900, color: '#9B59B6', fontSize: '1.1rem' }}>5.</div>
                   <div>
                     <strong>Accuracy Scoring &amp; Leaderboard:</strong> Accuracy is calculated as <code>(Stopped / Blast) &times; 100</code>. Stopping right before the blast earns near 100% accuracy and ranks on the Top 5 Leaderboard!
                   </div>
